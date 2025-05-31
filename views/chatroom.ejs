@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chat with <%= chatUser.Name %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-purple-100 to-pink-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow sticky top-0 z-30">
+    <div class="container mx-auto flex justify-between items-center py-4 px-6">
+      <h1 class="text-2xl font-extrabold tracking-wide select-none">Chat with <%= chatUser.Name %></h1>
+      <a href="/interface" class="text-indigo-200 hover:text-white transition font-medium underline">Back</a>
+    </div>
+  </header>
+
+  <!-- Chat container -->
+  <main class="flex flex-col flex-grow max-w-4xl mx-auto w-full p-4 md:p-6">
+
+    <!-- Messages Area -->
+    <div
+      id="message-container"
+      class="flex flex-col gap-3 p-4 bg-white rounded-2xl shadow-xl overflow-y-auto flex-grow max-h-[75vh]"
+      style="scroll-behavior: smooth;"
+    >
+      <% if (messages.length > 0) { %>
+        <% messages.forEach(m => { %>
+          <% const isSentByCurrentUser = m.sender.toString() === currentUser._id.toString(); %>
+
+          <div
+            class="flex items-end gap-3 max-w-[80%] animate-fade-in"
+            style="align-self: <%= isSentByCurrentUser ? 'flex-end' : 'flex-start' %>;"
+          >
+            <!-- Avatar -->
+            <% if (!isSentByCurrentUser) { %>
+              <div
+                class="w-10 h-10 bg-indigo-600 text-white font-bold rounded-full flex items-center justify-center select-none"
+                title="<%= chatUser.Name %>"
+              >
+                <%= chatUser.Name.charAt(0).toUpperCase() %>
+              </div>
+            <% } else { %>
+              <div
+                class="w-10 h-10 bg-indigo-300 text-indigo-900 font-bold rounded-full flex items-center justify-center select-none"
+                title="You"
+              >
+                <%= currentUser.Name.charAt(0).toUpperCase() %>
+              </div>
+            <% } %>
+
+            <!-- Message bubble -->
+            <div
+              class="relative rounded-2xl px-5 py-3 text-sm shadow-md
+                <%= isSentByCurrentUser ? 'bg-indigo-100 text-indigo-900' : 'bg-indigo-600 text-white' %>"
+              style="word-break: break-word;"
+            >
+              <div><%= m.message %></div>
+              <div class="text-xs mt-1 opacity-60 italic select-none">
+                <%= new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) %>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      <% } else { %>
+        <p class="text-center text-gray-400 italic mt-8 select-none">No messages yet. Start the conversation!</p>
+      <% } %>
+    </div>
+
+    <!-- Message Input -->
+    <form
+      id="chat-form"
+      class="mt-4 flex gap-3 sticky bottom-0 bg-white py-3 px-4 rounded-2xl shadow-lg max-w-4xl mx-auto"
+      style="box-shadow: 0 -2px 10px rgb(0 0 0 / 0.1);"
+    >
+      <input
+        id="message-input"
+        type="text"
+        placeholder="Type your message..."
+        autocomplete="off"
+        required
+        class="flex-grow border border-indigo-300 rounded-full px-5 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition text-gray-800"
+      />
+      <button
+        type="submit"
+        class="bg-indigo-600 text-white rounded-full px-6 py-3 font-semibold hover:bg-indigo-700 active:bg-indigo-800 transition-shadow shadow-md"
+        aria-label="Send message"
+      >
+        Send
+      </button>
+    </form>
+  </main>
+
+  <script>
+    const socket = io();
+
+    const currentUserId = '<%= currentUser._id %>';
+    const chatUserId = '<%= chatUser._id %>';
+
+    // Also pass initials and names for JS usage
+    const currentUserInitial = '<%= currentUser.Name.charAt(0).toUpperCase() %>';
+    const chatUserInitial = '<%= chatUser.Name.charAt(0).toUpperCase() %>';
+    const chatUserName = '<%= chatUser.Name %>';
+
+    socket.emit('joinRoom', { userId: currentUserId, otherUserId: chatUserId });
+
+    const messageContainer = document.getElementById('message-container');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+
+    // Add new message with fade-in animation
+   function appendMessage(data) {
+  const isSentByCurrentUser = data.sender === currentUserId;
+
+  const wrapper = document.createElement('div');
+  wrapper.classList.add('flex', 'items-end', 'gap-3', 'max-w-[80%]', 'animate-fade-in');
+  wrapper.style.alignSelf = isSentByCurrentUser ? 'flex-end' : 'flex-start';
+
+  const avatar = document.createElement('div');
+  avatar.classList.add('w-10', 'h-10', 'font-bold', 'rounded-full', 'flex', 'items-center', 'justify-center', 'select-none');
+
+  if (isSentByCurrentUser) {
+    avatar.classList.add('bg-indigo-300', 'text-indigo-900');
+    avatar.title = 'You';
+    avatar.textContent = currentUserInitial;
+  } else {
+    avatar.classList.add('bg-indigo-600', 'text-white');
+    avatar.title = chatUserName;
+    avatar.textContent = chatUserInitial;
+  }
+
+  const bubble = document.createElement('div');
+  bubble.classList.add('relative', 'rounded-2xl', 'px-5', 'py-3', 'text-sm', 'shadow-md');
+  bubble.style.wordBreak = 'break-word';
+  bubble.textContent = data.message;
+  bubble.classList.add(isSentByCurrentUser ? 'bg-indigo-100' : 'bg-indigo-600');
+  bubble.classList.add(isSentByCurrentUser ? 'text-indigo-900' : 'text-white');
+
+  const timestamp = document.createElement('div');
+  timestamp.classList.add('text-xs', 'mt-1', 'opacity-60', 'italic', 'select-none');
+  const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  timestamp.textContent = time;
+
+  bubble.appendChild(timestamp);
+
+  // ALWAYS avatar first, then bubble, so avatar is left side
+  wrapper.appendChild(avatar);
+  wrapper.appendChild(bubble);
+
+  messageContainer.appendChild(wrapper);
+  messageContainer.scrollTop = messageContainer.scrollHeight;
+}
+
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      if (!message) return;
+
+      socket.emit('chatMessage', {
+        senderId: currentUserId,
+        receiverId: chatUserId,
+        message
+      });
+
+      messageInput.value = '';
+      messageInput.focus();
+    });
+
+    socket.on('message', (data) => {
+      if (
+        (data.sender === currentUserId && data.receiver === chatUserId) ||
+        (data.sender === chatUserId && data.receiver === currentUserId)
+      ) {
+        appendMessage(data);
+      }
+    });
+
+    // Scroll to bottom on page load
+    messageContainer.scrollTop = messageContainer.scrollHeight;
+  </script>
+
+  <style>
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease forwards;
+    }
+  </style>
+</body>
+</html>
