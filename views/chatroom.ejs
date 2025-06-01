@@ -19,7 +19,6 @@
 
   <!-- Chat container -->
   <main class="flex flex-col flex-grow max-w-4xl mx-auto w-full p-4 md:p-6">
-
     <!-- Messages Area -->
     <div
       id="message-container"
@@ -29,32 +28,21 @@
       <% if (messages.length > 0) { %>
         <% messages.forEach(m => { %>
           <% const isSentByCurrentUser = m.sender.toString() === currentUser._id.toString(); %>
-
           <div
             class="flex items-end gap-3 max-w-[80%] animate-fade-in"
             style="align-self: <%= isSentByCurrentUser ? 'flex-end' : 'flex-start' %>;"
           >
             <!-- Avatar -->
-            <% if (!isSentByCurrentUser) { %>
-              <div
-                class="w-10 h-10 bg-indigo-600 text-white font-bold rounded-full flex items-center justify-center select-none"
-                title="<%= chatUser.Name %>"
-              >
-                <%= chatUser.Name.charAt(0).toUpperCase() %>
-              </div>
-            <% } else { %>
-              <div
-                class="w-10 h-10 bg-indigo-300 text-indigo-900 font-bold rounded-full flex items-center justify-center select-none"
-                title="You"
-              >
-                <%= currentUser.Name.charAt(0).toUpperCase() %>
-              </div>
-            <% } %>
+            <div
+              class="w-10 h-10 font-bold rounded-full flex items-center justify-center select-none <%= isSentByCurrentUser ? 'bg-indigo-300 text-indigo-900' : 'bg-indigo-600 text-white' %>"
+              title="<%= isSentByCurrentUser ? 'You' : chatUser.Name %>"
+            >
+              <%= isSentByCurrentUser ? currentUser.Name.charAt(0).toUpperCase() : chatUser.Name.charAt(0).toUpperCase() %>
+            </div>
 
             <!-- Message bubble -->
             <div
-              class="relative rounded-2xl px-5 py-3 text-sm shadow-md
-                <%= isSentByCurrentUser ? 'bg-indigo-100 text-indigo-900' : 'bg-indigo-600 text-white' %>"
+              class="relative rounded-2xl px-5 py-3 text-sm shadow-md <%= isSentByCurrentUser ? 'bg-indigo-100 text-indigo-900' : 'bg-indigo-600 text-white' %>"
               style="word-break: break-word;"
             >
               <div><%= m.message %></div>
@@ -98,8 +86,6 @@
 
     const currentUserId = '<%= currentUser._id %>';
     const chatUserId = '<%= chatUser._id %>';
-
-    // Also pass initials and names for JS usage
     const currentUserInitial = '<%= currentUser.Name.charAt(0).toUpperCase() %>';
     const chatUserInitial = '<%= chatUser.Name.charAt(0).toUpperCase() %>';
     const chatUserName = '<%= chatUser.Name %>';
@@ -110,49 +96,47 @@
     const chatForm = document.getElementById('chat-form');
     const messageInput = document.getElementById('message-input');
 
-    // Add new message with fade-in animation
-   function appendMessage(data) {
-  const isSentByCurrentUser = data.sender === currentUserId;
+    function appendMessage(data) {
+      const isSentByCurrentUser = data.sender === currentUserId;
 
-  const wrapper = document.createElement('div');
-  wrapper.classList.add('flex', 'items-end', 'gap-3', 'max-w-[80%]', 'animate-fade-in');
-  wrapper.style.alignSelf = isSentByCurrentUser ? 'flex-end' : 'flex-start';
+      const wrapper = document.createElement('div');
+      wrapper.classList.add('flex', 'items-end', 'gap-3', 'max-w-[80%]', 'animate-fade-in');
+      wrapper.style.alignSelf = isSentByCurrentUser ? 'flex-end' : 'flex-start';
 
-  const avatar = document.createElement('div');
-  avatar.classList.add('w-10', 'h-10', 'font-bold', 'rounded-full', 'flex', 'items-center', 'justify-center', 'select-none');
+      const avatar = document.createElement('div');
+      avatar.classList.add('w-10', 'h-10', 'font-bold', 'rounded-full', 'flex', 'items-center', 'justify-center', 'select-none');
+      if (isSentByCurrentUser) {
+        avatar.classList.add('bg-indigo-300', 'text-indigo-900');
+        avatar.title = 'You';
+        avatar.textContent = currentUserInitial;
+      } else {
+        avatar.classList.add('bg-indigo-600', 'text-white');
+        avatar.title = chatUserName;
+        avatar.textContent = chatUserInitial;
+      }
 
-  if (isSentByCurrentUser) {
-    avatar.classList.add('bg-indigo-300', 'text-indigo-900');
-    avatar.title = 'You';
-    avatar.textContent = currentUserInitial;
-  } else {
-    avatar.classList.add('bg-indigo-600', 'text-white');
-    avatar.title = chatUserName;
-    avatar.textContent = chatUserInitial;
-  }
+      const bubble = document.createElement('div');
+      bubble.classList.add('relative', 'rounded-2xl', 'px-5', 'py-3', 'text-sm', 'shadow-md');
+      bubble.classList.add(isSentByCurrentUser ? 'bg-indigo-100' : 'bg-indigo-600');
+      bubble.classList.add(isSentByCurrentUser ? 'text-indigo-900' : 'text-white');
+      bubble.style.wordBreak = 'break-word';
 
-  const bubble = document.createElement('div');
-  bubble.classList.add('relative', 'rounded-2xl', 'px-5', 'py-3', 'text-sm', 'shadow-md');
-  bubble.style.wordBreak = 'break-word';
-  bubble.textContent = data.message;
-  bubble.classList.add(isSentByCurrentUser ? 'bg-indigo-100' : 'bg-indigo-600');
-  bubble.classList.add(isSentByCurrentUser ? 'text-indigo-900' : 'text-white');
+      const messageText = document.createElement('div');
+      messageText.textContent = data.message;
 
-  const timestamp = document.createElement('div');
-  timestamp.classList.add('text-xs', 'mt-1', 'opacity-60', 'italic', 'select-none');
-  const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  timestamp.textContent = time;
+      const timestamp = document.createElement('div');
+      timestamp.classList.add('text-xs', 'mt-1', 'opacity-60', 'italic', 'select-none');
+      const time = new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      timestamp.textContent = time;
 
-  bubble.appendChild(timestamp);
+      bubble.appendChild(messageText);
+      bubble.appendChild(timestamp);
 
-  // ALWAYS avatar first, then bubble, so avatar is left side
-  wrapper.appendChild(avatar);
-  wrapper.appendChild(bubble);
-
-  messageContainer.appendChild(wrapper);
-  messageContainer.scrollTop = messageContainer.scrollHeight;
-}
-
+      wrapper.appendChild(avatar);
+      wrapper.appendChild(bubble);
+      messageContainer.appendChild(wrapper);
+      messageContainer.scrollTop = messageContainer.scrollHeight;
+    }
 
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
